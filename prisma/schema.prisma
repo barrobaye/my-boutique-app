@@ -1,0 +1,83 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  seed = "./prisma/seed.ts"
+}
+
+model Client {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  prenom      String
+  telephone   String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  User        User?
+  dettes      Dette[]
+}
+
+model Article {
+  id            Int      @id @default(autoincrement())
+  libelle       String
+  prix          Float
+  quantiteStock Int
+  detail        Detail[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Detail {
+  dette         Dette    @relation(fields: [detteId], references: [id])
+  detteId       Int
+  article       Article  @relation(fields: [articleId], references: [id])
+  articleId     Int
+  prixVente     Float
+  qteVente      Float
+  createdAt     DateTime @default(now())
+  @@id([detteId, articleId])
+}
+
+model Dette {
+  id               Int        @id @default(autoincrement())
+  clientId         Int
+  client           Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  montant          Float
+  status           Boolean    @default(false)
+  detail           Detail[]
+  paiements        Paiement[]  
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  @@index([clientId], map: "Dette_clientId_idx_unique")
+}
+
+model Paiement {  
+  id              Int         @id @default(autoincrement()) 
+  montantVerser   Float       
+  montantRest     Float
+  date            DateTime   @default(now())
+  detteId         Int
+  dette           Dette       @relation(fields: [detteId], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  @@index([detteId], map: "Paiement_detteId_idx_unique")
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+  BOUTIQUIER
+}
+
+model User {
+  id        Int             @id @default(autoincrement())
+  email     String          @unique
+  password  String
+  role      Role    
+  clientId  Int?            @unique 
+  client    Client?         @relation(fields: [clientId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
